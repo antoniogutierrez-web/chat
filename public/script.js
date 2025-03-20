@@ -1,28 +1,37 @@
-// public/script.js
-
-// Conectar con el servidor Socket.io
 const socket = io();
-
-// Seleccionar elementos del DOM
+const messagesList = document.getElementById('messages');
 const form = document.getElementById('form');
 const input = document.getElementById('input');
-const messages = document.getElementById('messages');
 
-// Escuchar el evento de envío del formulario
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  if (input.value) {
-    // Enviar el mensaje al servidor
-    socket.emit('chat message', input.value);
-    input.value = '';
-  }
+// Generar un ID único para cada usuario
+const userId = Math.random().toString(36).substring(2, 10);
+
+// 🔹 Función para agregar un mensaje al chat
+function addMessage(msg, isUser) {
+    const item = document.createElement('li');
+    item.classList.add('message', isUser ? 'user' : 'other');
+    item.textContent = msg.text; // Acceder correctamente al mensaje
+    messagesList.appendChild(item);
+    messagesList.scrollTop = messagesList.scrollHeight; // Desplazar hacia abajo automáticamente
+}
+
+// 🔹 Escuchar historial de mensajes al conectarse
+socket.on('messageHistory', (history) => {
+    messagesList.innerHTML = ''; // Limpiar chat antes de mostrar historial
+    history.forEach((msg) => addMessage(msg, msg.userId === userId));
 });
 
-// Escuchar los mensajes emitidos por el servidor
+// 🔹 Escuchar nuevos mensajes
 socket.on('chat message', (msg) => {
-  const item = document.createElement('li');
-  item.textContent = msg;
-  messages.appendChild(item);
-  // Auto-scroll para ver el último mensaje
-  window.scrollTo(0, document.body.scrollHeight);
+    addMessage(msg, msg.userId === userId);
+});
+
+// 🔹 Enviar mensaje cuando se envíe el formulario
+form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (input.value.trim()) {
+        const messageData = { text: input.value.trim(), userId };
+        socket.emit('chat message', messageData);
+        input.value = ''; // Limpiar el campo de entrada
+    }
 });
